@@ -1,0 +1,9 @@
+# Chronicl
+
+> Chronicl follows breaking civic news stories across outlets onto one live page per story: grouped storylines, dated timelines, every headline linked to the original publisher, and third-party bias ratings kept visible (never averaged).
+
+Chronicl gathers the past seven days of civic headlines (GDELT + GNews indexes) into a stable daily snapshot, clusters related reporting — originals, follow-ups, reaction pieces — into storylines, and renders each storyline as its own page with a dated timeline (one entry per distinct development, each backed by real member articles), key points, open questions ("what we still don't know"), and per-article bias context from MediaBias.news shown per rater.
+
+- No accounts: the feed opens directly from the landing page; sessions are time-limited.
+- Free. The AI only suggests how headlines relate; claims stay unverified and belong to their publishers.
+- Landing page: https://chronicl-ten.vercel.app/ — Live feed: https://chronicl-ten.vercel.app/app

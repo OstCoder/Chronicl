@@ -1008,6 +1008,32 @@ body.intro-lock {
   background: var(--color-accent-deep);
 }
 
+/* The one-line reassurance under both CTAs (audit #6: set up the ask). */
+.landing-cta-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+/* --- Keyboard skip link (audit accessibility 2.4.1) ---------------------
+   Hidden until focused; first tab stop on the landing page lands here. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -100%;
+  z-index: 50;
+  padding: 0.6rem 1rem;
+  border-radius: 0 0 10px 10px;
+  background: var(--color-ink);
+  color: #fff;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 /* --- Floating demo cards ------------------------------------------------ */
 
 .landing-floaters {
@@ -1068,6 +1094,222 @@ body.intro-lock {
   width: 200px;
   background: #f4f8fd;
   animation-delay: -3.1s;
+}
+
+/* --- Below the hero: proof, how-it-works, features, FAQ (audit #1/#2/#3)
+   Same design language as the app: warm-white cards on paper, navy ink,
+   coral used sparingly. Static content only — no new client JS. ---------- */
+
+.landing-below {
+  padding: 1rem 1.25rem 4.5rem;
+}
+
+.landing-section {
+  max-width: 64rem;
+  margin: 0 auto 2.75rem;
+  padding: 2.25rem 1.75rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(11, 18, 34, 0.05);
+}
+
+.landing-section-heading {
+  margin: 0 0 0.75rem;
+  max-width: 46rem;
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  font-weight: 500;
+  color: var(--color-ink);
+  letter-spacing: -0.02em;
+}
+
+.landing-section-heading strong {
+  color: var(--color-accent-deep);
+  font-weight: 500;
+}
+
+.landing-section-sub {
+  margin: 0 0 1.25rem;
+  max-width: 40rem;
+  color: var(--color-muted);
+}
+
+/* --- Proof: observed-outlet wall + stat + beta quotes ------------------- */
+
+.landing-outlets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.6rem;
+  margin: 0 0 1.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.landing-outlets li {
+  padding: 0.35rem 0.8rem;
+  background: #f4f8fd;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--color-ink);
+}
+
+.landing-quotes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.landing-quotes figure {
+  margin: 0;
+  padding: 1.1rem 1.2rem;
+  background: #fdfaf0;
+  border: 1px solid #e5dfc8;
+  border-radius: 14px;
+}
+
+.landing-quotes p {
+  margin: 0 0 0.6rem;
+  line-height: 1.5;
+  color: #3d4152;
+  font-size: 0.95rem;
+}
+
+.landing-quotes figcaption {
+  font-size: 0.78rem;
+  color: #8a8a94;
+}
+
+/* --- How it works: three numbered steps -------------------------------- */
+
+.landing-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.landing-steps h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.02rem;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.landing-steps li {
+  counter-increment: step;
+  padding: 1.1rem 1.2rem;
+  background: #f4f8fd;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+}
+
+.landing-steps p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+/* --- Features: three differentiators ----------------------------------- */
+
+.landing-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.landing-feature {
+  padding: 1.1rem 1.2rem;
+  background: #fdf4ee;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+}
+
+.landing-feature h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.02rem;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.landing-feature p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+/* --- FAQ: native details/summary (zero JS, keyboard accessible) --------- */
+
+.landing-faq {
+  max-width: 46rem;
+}
+
+.landing-faq details {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.landing-faq details:last-child {
+  border-bottom: none;
+}
+
+.landing-faq summary {
+  padding: 0.85rem 0;
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.landing-faq summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.landing-faq p {
+  margin: 0 0 1rem;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+/* --- Closing CTA --------------------------------------------------------- */
+
+.landing-section--final {
+  text-align: center;
+}
+
+.landing-section--final .landing-section-heading {
+  margin-inline: auto;
+}
+
+.landing-cta-final {
+  display: inline-block;
+  margin-top: 0.9rem;
+  padding: 0.9rem 3.2rem;
+  border-radius: 12px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.landing-cta-final:hover {
+  background: var(--color-accent-deep);
+}
+
+/* --- Narrow screens: sections breathe, floaters stay decorative ---------- */
+@media (max-width: 720px) {
+  .landing-section {
+    padding: 1.5rem 1.1rem;
+  }
 }
 
 /* --- Fake timeline (card one): MINIATURE of the app's horizontal
