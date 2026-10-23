@@ -1,44 +1,26 @@
-import { STORY_CATEGORIES } from '../data/stories'
+import { TOPIC_CATEGORIES } from '../data/topicGroups'
 import type { StoryCategory } from '../types'
 
 /**
- * Props are the component's input contract. Sidebar never touches the
- * stories array or decides filtering itself — it only REPORTS what the
- * user picked upward through these callbacks. That keeps it reusable
- * (same component would work on any list page).
+ * Sidebar = the app's ONLY filter surface, wired to the LIVE pipeline.
+ * The search box is gone (product decision): the topic buttons are the
+ * only control, and they are pure client-side filters over the one
+ * auto-loaded dataset — instant, with no network activity.
  */
 interface SidebarProps {
   selectedCategory: StoryCategory | null
   onSelectCategory: (category: StoryCategory | null) => void
-  searchTerm: string
-  onSearchChange: (term: string) => void
 }
 
 export default function Sidebar({
   selectedCategory,
   onSelectCategory,
-  searchTerm,
-  onSearchChange,
 }: SidebarProps) {
   return (
     <aside className="sidebar">
-      <h2 className="sidebar-heading">Search</h2>
-      {/*
-        A CONTROLLED input: its value comes from React state and every
-        keystroke calls back up with the new value. The homepage owns the
-        state, so filtering and this box can never disagree.
-      */}
-      <input
-        type="search"
-        className="sidebar-search"
-        placeholder="Search stories…"
-        value={searchTerm}
-        onChange={(event) => onSearchChange(event.target.value)}
-      />
-
-      <h2 className="sidebar-heading">Topics</h2>
+      <h2 className="sidebar-heading">Filters</h2>
       <div className="sidebar-filters">
-        {/* "All stories" clears the category filter entirely. */}
+        {/* "All topics" clears the topic filter entirely. */}
         <button
           type="button"
           className={
@@ -46,9 +28,9 @@ export default function Sidebar({
           }
           onClick={() => onSelectCategory(null)}
         >
-          All stories
+          All topics
         </button>
-        {STORY_CATEGORIES.map((category) => (
+        {TOPIC_CATEGORIES.map((category) => (
           <button
             key={category}
             type="button"
@@ -61,10 +43,6 @@ export default function Sidebar({
           </button>
         ))}
       </div>
-
-      <p className="sidebar-note">
-        All content in this build is fictional demonstration data.
-      </p>
     </aside>
   )
 }

@@ -1,32 +1,77 @@
 /* ==========================================================================
-   CivicTrace base styles — Stage 3
+   Chronicl base styles — Stage 3
    Plain CSS with design tokens (CSS variables) so colors stay consistent.
    Modern browsers support these variables natively; no preprocessor needed.
    ========================================================================== */
 
 :root {
-  --color-ink: #1b2534;      /* main text */
-  --color-muted: #5b6572;    /* secondary text */
-  --color-line: #dfe3ea;     /* borders */
-  --color-bg: #f5f7fa;       /* page background */
-  --color-card: #ffffff;     /* card background */
-  --color-brand: #16305c;    /* CivicTrace deep blue */
-  --color-brand-light: #eaf0ff;
+  /* ---- Chronicl brand palette -----------------------------------------
+     Paper #F6F4EF is the canvas, navy #0B1222 carries ALL the contrast
+     (text, header, dark panels), coral #FF5A36 is a sparing accent.
+     Tints marked (*) are derived washes of those three, not new hues. */
+  --paper: #f6f4ef;                     /* main background */
+  --paper-deep: #efece4;                /* (*) tinted paper for wells */
+  --color-ink: #0b1222;                 /* CONTRAST: navy text */
+  --color-muted: #4d5565;               /* (*) navy softened for secondary text */
+  --color-line: #e2ded4;                /* (*) paper-toned hairline border */
+  --color-bg: var(--paper);             /* page background */
+  --color-card: #fffdf9;                /* (*) warm white card on paper */
+  --color-accent: #ff5a36;              /* ACCENT (sparingly) */
+  --color-accent-deep: #e04a28;         /* (*) hover shade of the accent */
+  --color-accent-wash: #feeae5;         /* (*) accent tint for chips */
+  --color-brand: #0b1222;               /* brand anchor = the navy */
+  --color-brand-light: #222c44;         /* (*) lifted navy for on-dark text */
   --radius-card: 10px;
-  --shadow-card: 0 1px 3px rgba(22, 48, 92, 0.08);
-  --shadow-card-hover: 0 8px 18px rgba(22, 48, 92, 0.16);
+  --shadow-card: 0 1px 3px rgba(11, 18, 34, 0.07);
+  --shadow-card-hover: 0 8px 18px rgba(11, 18, 34, 0.14);
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+/* Only Outfit Medium (500) is loaded, so normalize every heading to it —
+   otherwise the UA's default bold gets synthesized at ugly offsets. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 500;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  background: var(--color-bg);
+  /* Outfit Medium (500) is the app-wide face, loaded in index.html. The
+     fallback stack keeps the layout stable while the webfont streams in. */
+  font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+  /* Paper canvas: warm base with a soft fibre-noise texture, laid flat
+     under every page. Two transparent overlays tinge the grain warm/cool
+     so it reads as paper fibres rather than a uniform dot pattern. */
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(rgba(11, 18, 34, 0.028) 1px, transparent 1.4px),
+    radial-gradient(rgba(255, 90, 54, 0.018) 1px, transparent 1.4px),
+    radial-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1.6px);
+  background-size: 7px 7px, 9px 9px, 11px 11px;
+  background-position: 0 0, 3px 5px, 5px 2px;
   color: var(--color-ink);
   line-height: 1.5;
+}
+
+/* Cards sit ON the paper: keep them clean so the texture frames,
+   but does not fill, content surfaces. */
+.site-header,
+.sidebar,
+.live-story-card,
+.gdelt-panel-note,
+.live-stories-note {
+  background-color: var(--color-card);
+  background-image: none;
 }
 
 /* ----- Header ------------------------------------------------------- */
@@ -38,17 +83,30 @@ body {
   gap: 1rem;
   flex-wrap: wrap;
   padding: 1rem 1.5rem 0.95rem;
-  background: linear-gradient(120deg, #14213d 0%, #1d3a6e 60%, #274a8a 100%);
-  border-bottom: 3px solid #ffd166;
-  box-shadow: 0 2px 12px rgba(15, 30, 60, 0.22);
+  background: var(--color-ink);
+  border-bottom: 3px solid var(--color-accent);
+  box-shadow: 0 2px 12px rgba(11, 18, 34, 0.22);
 }
 
+/* Brand name + a small coral dot, mirroring the Chronicl wordmark so the
+   header reads as the same logo the landing page shows. */
 .header-brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15rem;
   font-size: 1.55rem;
-  font-weight: 800;
+  font-weight: 500;
   color: #fff;
   text-decoration: none;
   letter-spacing: 0.015em;
+}
+
+.header-brand::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
 }
 
 .header-brand:hover {
@@ -60,28 +118,67 @@ body {
 .header-nav {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
+/* Nav link: LIGHT text on the navy bar (the old --color-brand-light
+   shade was nearly invisible against this same navy background), with a
+   soft hover pill instead of an underline flail. */
 .header-nav-link {
-  color: var(--color-brand-light);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  transition: color 120ms ease, background 120ms ease;
 }
 
 .header-nav-link:hover {
-  text-decoration: underline;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
+/* "Live wire" status chip: quiet glass pill with a pulsing coral dot —
+   a signal, not a shout. */
 .header-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-brand);
-  background: #ffd166;
-  padding: 0.2rem 0.55rem;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 0.3rem 0.75rem;
   border-radius: 999px;
+}
+
+.header-badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .header-badge::before {
+    animation: header-live-pulse 2s ease-out infinite;
+  }
+}
+
+@keyframes header-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 54, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(255, 90, 54, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 54, 0);
+  }
 }
 
 /* ----- Page shell ---------------------------------------------------- */
@@ -92,6 +189,12 @@ body {
 
 .app-main > *:last-child {
   margin-top: 2rem;
+}
+
+/* The landing page fills the viewport edge-to-edge (Bento-style), so the
+   generic last-child spacing above must not push it down off the top. */
+.app-main > .landing {
+  margin-top: 0;
 }
 
 /* ----- Homepage layout ----------------------------------------------- */
@@ -109,17 +212,11 @@ body {
 .home-heading {
   margin: 0 0 0.25rem;
   font-size: 1.7rem;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: inherit;
 }
 
 .home-sub {
   margin: 0 0 1rem;
-  color: var(--color-muted);
-}
-
-.home-count {
-  margin: 0 0 1rem;
-  font-size: 0.85rem;
   color: var(--color-muted);
 }
 
@@ -138,7 +235,7 @@ body {
 .sidebar-heading {
   margin: 0.75rem 0 0.5rem;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-muted);
@@ -177,71 +274,27 @@ body {
 }
 
 .filter-btn:hover {
-  background: var(--color-brand-light);
+  background: var(--paper-deep);
 }
 
 .filter-btn--active {
-  background: var(--color-brand);
-  border-color: var(--color-brand);
-  color: #fff;
-  font-weight: 600;
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--paper);
+  font-weight: 500;
 }
 
-.sidebar-note {
-  margin: 1rem 0 0;
-  font-size: 0.75rem;
-  color: var(--color-muted);
-}
-
-/* ----- Story cards ----------------------------------------------------- */
-
-.story-grid {
-  display: grid;
-  /* Fluid cards: each at least 17rem wide, wrapping automatically. */
-  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-  gap: 1rem;
-}
-
-.story-card {
-  display: block;
-  background: var(--color-card);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-card);
-  padding: 1rem 1.1rem 1.1rem;
-  text-decoration: none;
-  color: inherit;
-  box-shadow: var(--shadow-card);
-  transition: transform 120ms ease, box-shadow 120ms ease;
-}
-
-.story-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
-}
-
-.story-card:hover .story-card-title {
-  color: var(--color-brand);
-  text-decoration: underline;
-  text-decoration-thickness: 1.5px;
-}
-
-.story-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.6rem;
-}
+/* Category badge (still used by live story pages) --------- */
 
 .category-badge {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.18rem 0.55rem;
   border-radius: 999px;
-  background: var(--color-brand-light);
-  color: var(--color-brand);
+  background: var(--paper-deep);
+  color: var(--color-ink);
 }
 
 /* One tint per category, so cards are scannable at a glance. */
@@ -261,48 +314,8 @@ body {
 }
 
 .category-badge--technology {
-  background: #ece8fd;
-  color: #4b3aa5;
-}
-
-.story-card-date {
-  font-size: 0.78rem;
-  color: var(--color-muted);
-  white-space: nowrap;
-}
-
-.story-card-title {
-  margin: 0 0 0.4rem;
-  font-size: 1.05rem;
-  line-height: 1.3;
-}
-
-.story-card-desc {
-  margin: 0 0 0.9rem;
-  font-size: 0.88rem;
-  color: var(--color-muted);
-}
-
-.story-card-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  border-top: 1px solid var(--color-line);
-  padding-top: 0.6rem;
-  font-size: 0.8rem;
-  color: var(--color-muted);
-}
-
-.demo-tag {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #8a5a00;
-  background: #fff3d6;
-  padding: 0.12rem 0.45rem;
-  border-radius: 999px;
+  background: var(--color-accent-wash);
+  color: var(--color-accent-deep);
 }
 
 .no-results {
@@ -314,47 +327,10 @@ body {
   color: var(--color-muted);
 }
 
-/* ----- Story page sections (Stage 5) ---------------------------------- */
-
-.story-section {
-  margin-top: 2.25rem;
-}
-
-.story-section-heading {
-  margin: 0 0 0.9rem;
-  font-size: 1.15rem;
-  border-bottom: 2px solid var(--color-brand);
-  padding-bottom: 0.35rem;
-}
-
-.story-columns {
-  /* Two equal columns on desktop; the LEFT column is the Timeline, the
-     RIGHT column is EvidenceGaps — order matches the required layout. */
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-}
-
-.story-column {
-  background: var(--color-card);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-card);
-  padding: 1rem 1.1rem;
-}
-
-.section-slot {
-  margin: 0;
-  padding: 0.6rem;
-  border: 1px dashed var(--color-line);
-  border-radius: 7px;
-  font-size: 0.82rem;
-  color: var(--color-muted);
-}
-
 .story-back-link {
   display: inline-block;
   margin-top: 2rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-brand);
 }
 
@@ -366,189 +342,303 @@ body {
   padding: 1.5rem;
 }
 
-.story-hero {
-  background: var(--color-card);
-  border: 1px solid var(--color-line);
-  border-top: 4px solid var(--color-brand);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  padding: 1.5rem 1.75rem;
+.event-source-publisher {
+  font-weight: 500;
 }
 
-.story-hero-meta {
+/* --- Bento layout for the live story detail page (WHITE theme) ------------
+   Same card arrangement as the spec screenshot — full-width overview,
+   then Timeline + "What we still don't know" side by side, then
+   full-width sources — but themed to the app's white/light palette per
+   the user: dark text on white cards, light gray page. */
+
+.story-page--bento {
+  --bento-card: var(--color-card);
+  --bento-line: var(--color-line);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  min-height: calc(100vh - 5rem);
+  padding-bottom: 2.5rem;
+}
+
+.story-page--bento .story-bento {
+  background: var(--bento-card);
+  border: 1px solid var(--bento-line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 1.25rem 1.4rem;
+}
+
+.story-bento-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.6rem;
-  margin-bottom: 0.9rem;
+  margin-bottom: 0.75rem;
 }
 
-.story-hero-date {
-  font-size: 0.82rem;
+.category-badge--live {
+  background: var(--color-accent-wash);
+  color: var(--color-accent-deep);
+}
+
+.story-bento-range {
+  font-size: 0.8rem;
   color: var(--color-muted);
 }
 
-.story-hero-title {
-  margin: 0 0 0.75rem;
-  font-size: 1.8rem;
+.story-bento-title {
+  margin: 0 0 0.6rem;
+  font-size: 1.75rem;
   line-height: 1.25;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: inherit;
+  color: var(--color-ink);
 }
 
-.story-hero-summary {
+.story-bento-summary {
   margin: 0;
-  max-width: 60rem;
   color: var(--color-muted);
-}
-
-.sections-pending {
-  margin: 1.25rem 0 0;
-  padding: 0.75rem 1rem;
-  border: 1px dashed var(--color-line);
-  border-radius: var(--radius-card);
-  font-size: 0.82rem;
-  color: var(--color-muted);
-}
-
-/* ----- Section B: Claim Ledger ------------------------------------------ */
-
-.claim-ledger {
-  background: var(--color-card);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  padding: 1.25rem 1.5rem 1.4rem;
-}
-
-.ledger-thesis {
-  border-left: 4px solid var(--color-brand);
-  background: var(--color-brand-light);
-  border-radius: 0 8px 8px 0;
-  padding: 0.9rem 1.1rem;
-}
-
-.ledger-thesis-label {
-  margin: 0 0 0.35rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-brand);
-}
-
-.ledger-thesis-text {
-  margin: 0;
   max-width: 62rem;
 }
-
-.claim-group-title {
+/* Key points: one-line takeaways as quiet pills under the summary —
+   clearly content, clearly secondary to the summary above them. */
+.story-key-points {
+  margin: 0.95rem 0 0;
+  padding: 0;
+  list-style: none;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin: 1.25rem 0 0.6rem;
-  font-size: 0.95rem;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
-.claim-group-count {
+.story-key-points li {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-ink);
+  background: var(--paper-deep);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  padding: 0.28rem 0.75rem;
+  max-width: 100%;
+}
+
+
+.story-bento-row {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.story-bento-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.story-bento-side {
   font-size: 0.72rem;
-  font-weight: 600;
   color: var(--color-muted);
 }
 
-/* One status, one color — used consistently below. */
-.claim-group-title--supported {
-  color: #1e6b3c;
+.story-bento-heading {
+  margin: 0 0 0.9rem;
+  font-size: 1.15rem;
+  color: var(--color-ink);
 }
 
-.claim-group-title--conflicting {
-  color: #a33b2e;
+.story-bento-empty {
+  color: var(--color-muted);
+  font-size: 0.85rem;
 }
 
-.claim-group-title--uncertain {
-  color: #5b6572;
-}
-
-.claim-card {
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
-  padding: 0.8rem 1rem;
-  margin-bottom: 0.6rem;
-}
-
-.claim-card:last-child {
-  margin-bottom: 0;
-}
-
-.claim-statement {
-  margin: 0 0 0.4rem;
-}
-
-.claim-sources {
+.story-questions {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.78rem;
-  color: var(--color-muted);
 }
 
-.claim-sources li {
-  padding-left: 1rem;
-  text-indent: -1rem;
+.story-questions li {
+  padding: 0.65rem 0.85rem;
+  border: 1px dashed #c8cfda;
+  border-radius: 8px;
+  margin-bottom: 0.6rem;
+  font-size: 0.88rem;
+  color: var(--color-ink);
+  line-height: 1.45;
 }
 
-.claim-sources li::before {
-  content: '\2191 '; /* an up-arrow reads as "points to source" */
+.story-questions li::before {
+  content: '? ';
+  color: var(--color-brand);
+  font-weight: 500;
 }
 
-.claim-source-publisher,
+.story-questions li:last-child {
+  margin-bottom: 0;
+}
+
+.story-back-link--bento {
+  color: var(--color-brand);
+}
+
+@media (max-width: 760px) {
+  .story-bento-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+
+
 .event-source-publisher {
-  font-weight: 600;
+  font-weight: 500;
 }
 
-/* ----- Section C left: vertical Timeline -------------------------------- */
+/* ----- Section C: HORIZONTAL Timeline of event sub-cards ------------------
+   The connector line runs ABOVE the cards and each entry renders as a
+   sub-card beneath its dot. Every card draws a FULL-WIDTH segment (this
+   card plus both flex gaps), which tiles into one continuous line running
+   through BOTH sides of every node — even the first and the last. */
 
 .timeline {
-  position: relative;
+  display: flex;
+  gap: 1.25rem;
   margin: 0;
-  padding: 0.2rem 0 0;
+  padding: 2.6rem 0.25rem 0.5rem; /* top strip holds line + dots */
   list-style: none;
-}
-
-.timeline::before {
-  content: '';
-  position: absolute;
-  top: 0.45rem;
-  bottom: 0.45rem;
-  left: 6px;
-  width: 2px;
-  background: var(--color-line);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
 }
 
 .timeline-item {
   position: relative;
-  padding: 0 0 1.25rem 1.5rem;
+  flex: 1 0 15rem;
+  display: flex;
+  flex-direction: column;
+  scroll-snap-align: start;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+  padding: 0.9rem 1rem;
 }
 
-.timeline-item:last-child {
-  padding-bottom: 0.2rem;
+/* Connector segment: the card's full width PLUS both flex gaps, so the
+   segments tile seamlessly — line on both sides of every node at all
+   times. The dot (z-indexed above) floats over the passing line. */
+.timeline-item::after {
+  content: '';
+  position: absolute;
+  top: -1.35rem;
+  left: -1.25rem; /* reaches the previous card through the flex gap */
+  right: -1.25rem; /* reaches the next card through the flex gap */
+  height: 2px;
+  background: var(--color-line);
+}
+
+/* Bento (white) timeline text tones. */
+.story-page--bento .timeline-date {
+  color: var(--color-brand);
+}
+
+.story-page--bento .timeline-event-title {
+  color: var(--color-ink);
+}
+
+.story-page--bento .event-sources {
+  color: var(--color-muted);
+}
+
+/* CLOSED CASE terminator: hollow ring instead of a solid dot (the line
+   itself stays continuous through it — the ring reads as the terminator). */
+.timeline-item--final-closed::before {
+  background: transparent;
+  border: 2px solid var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-light);
+}
+
+.timeline-closed-tag {
+  display: inline-block;
+  margin-top: 0.45rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-brand-light);
+  color: var(--color-brand);
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* CURRENT NODE (every story now): the last dot is "where the story is
+   now" — coral, with a pulsing halo rendered by the dedicated
+   .timeline-now-halo span (the ::after pseudo carries the connector
+   segment, so the halo needs its own element). */
+.timeline-item--current::before {
+  background: var(--color-accent);
+}
+
+/* ...and on a CLOSED story the current node keeps its hollow terminator
+   look while still pulsing: ring border goes coral instead of solid fill. */
+.timeline-item--final-closed.timeline-item--current::before {
+  background: transparent;
+  border-color: var(--color-accent);
+}
+
+.timeline-now-halo {
+  position: absolute;
+  top: calc(-1.35rem - 7px); /* centered on the dot */
+  left: calc(50% - 7px);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 90, 54, 0.45);
+  animation: timeline-pulse 1.8s ease-out infinite;
+  pointer-events: none;
 }
 
 .timeline-item::before {
   content: '';
   position: absolute;
-  top: 0.25rem;
-  left: 0;
+  top: calc(-1.35rem - 5px); /* centered on the connector line */
+  left: 50%;
+  margin-left: -5px;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: var(--color-brand);
   box-shadow: 0 0 0 3px var(--color-brand-light);
+  z-index: 1;
+}
+
+@keyframes timeline-pulse {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-now-halo {
+    animation: none;
+    opacity: 0.35;
+  }
 }
 
 .timeline-date {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-brand);
@@ -556,12 +646,13 @@ body {
 
 .timeline-event-title {
   margin: 0.2rem 0 0.25rem;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
+  line-height: 1.3;
 }
 
 .timeline-event-desc {
   margin: 0 0 0.45rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--color-muted);
 }
 
@@ -582,73 +673,13 @@ body {
   content: '\2191 ';
 }
 
-/* ----- Section C right: evidence gaps ------------------------------------ */
-
-.evidence-gaps-note {
-  margin: 0 0 0.9rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--color-muted);
-}
-
-.gap-list {
-  margin: 0;
+/* Plain-text disclaimer under the article grid: no highlight box, so it
+   reads as an ordinary footnote rather than an alert. */
+.article-list-note {
+  margin: 1.1rem 0 0;
   padding: 0;
-  list-style: none;
-}
-
-.gap-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.65rem;
-  padding: 0.8rem 0.9rem;
-  border: 1px dashed #c8cfda;
-  border-radius: 8px;
-  margin-bottom: 0.7rem;
-  transition: border-color 120ms ease;
-}
-
-.gap-item:hover {
-  border-color: var(--color-brand);
-}
-
-.gap-item:last-child {
-  margin-bottom: 0;
-}
-
-.gap-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: 50%;
-  background: var(--color-brand-light);
-  color: var(--color-brand);
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.gap-question {
-  margin: 0;
-  font-weight: 600;
-}
-
-.gap-context {
-  margin: 0.3rem 0 0;
   font-size: 0.8rem;
   color: var(--color-muted);
-}
-
-/* ----- Section D: articles & sources ------------------------------------ */
-
-.article-list-note {
-  margin: 0 0 0.9rem;
-  padding: 0.65rem 0.9rem;
-  background: #fffbe9;
-  border: 1px solid #eedd9f;
-  border-radius: 8px;
-  font-size: 0.78rem;
   max-width: 60rem;
 }
 
@@ -689,23 +720,48 @@ body {
 }
 
 .article-publisher {
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-brand);
 }
 
-.article-title {
-  margin: 0 0 0.4rem;
+.article-headline {
+  margin: 0 0 0.5rem;
   font-size: 1rem;
   line-height: 1.3;
 }
 
-.article-title a {
-  color: var(--color-ink);
+/* The indigo headline chip — same treatment as the live-story cards'
+   indigo block (the same var and stripe texture), scaled to the article
+   card. The white title rides above the stripes (z-index 1). */
+.article-headline-chip {
+  position: relative;
+  display: block;
+  padding: 0.85rem 1rem;
+  background: var(--live-story-indigo, #4727b5);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.article-headline-chip-stripes {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0 2px,
+    transparent 2px 12px
+  );
+  pointer-events: none;
+}
+
+.article-headline-chip a {
+  position: relative;
+  z-index: 1;
+  color: #fff;
   text-decoration: none;
 }
 
-.article-title a:hover {
-  color: var(--color-brand);
+.article-headline-chip a:hover {
   text-decoration: underline;
 }
 
@@ -713,46 +769,6 @@ body {
   margin: 0 0 0.8rem;
   font-size: 0.85rem;
   color: var(--color-muted);
-}
-
-.article-card-footer {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: auto; /* pins footer to the card bottom, cards align */
-}
-
-.bias-chip {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: #48566b;
-  background: #eef1f6;
-  border: 1px solid #d6dce6;
-  padding: 0.12rem 0.5rem;
-  border-radius: 999px;
-}
-
-/* ----- Not-found route state ------------------------------------------ */
-
-.not-found {
-  max-width: 70rem;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.not-found h1 {
-  margin: 0 0 0.5rem;
-}
-
-.not-found p {
-  max-width: 40rem;
-  color: var(--color-muted);
-}
-
-.not-found-link {
-  font-weight: 600;
-  color: var(--color-brand);
 }
 
 /* ----- Placeholder catch-all route ------------------------------------ */
@@ -763,32 +779,538 @@ body {
   padding: 1.5rem;
 }
 
-/* ----- Demo footer ------------------------------------------------------ */
+/* ===== App-launch splash intro (before the landing page) ================= */
 
-.demo-footer {
-  max-width: 70rem;
-  margin: 2rem auto 0;
-  padding: 1rem 1.5rem 2rem;
-  font-size: 0.78rem;
+/* Lock scroll behind the splash */
+body.intro-lock {
+  overflow: hidden;
+}
+
+.intro-splash {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  opacity: 1;
+  transition: opacity 500ms ease;
+}
+
+.intro-splash--fading {
+  opacity: 0;
+  pointer-events: none; /* let clicks pass through during the fade */
+}
+
+/* Center column: logo, then loader under it */
+.intro-logo-wrap {
+  position: absolute;
+  top: calc(50% - 20px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: intro-logo-pop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  perspective: 120px;
+}
+
+/* The cube IS the logo — big, centered, and always tumbling. Same six-face
+   construction as the loader spinners, just scaled up. */
+.intro-logo {
+  width: 76px;
+  height: 76px;
+  animation: spinner-spin 1.6s infinite ease;
+  transform-style: preserve-3d;
+}
+
+.intro-logo,
+.intro-logo * {
+  box-sizing: border-box;
+}
+
+.intro-logo > div {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 77, 255, 0.2);
+  border: 2px solid #004dff;
+}
+
+.intro-logo > div:nth-of-type(1) {
+  transform: translateZ(-38px) rotateY(180deg);
+}
+
+.intro-logo > div:nth-of-type(2) {
+  transform: rotateY(-270deg) translateX(50%);
+  transform-origin: top right;
+}
+
+.intro-logo > div:nth-of-type(3) {
+  transform: rotateY(270deg) translateX(-50%);
+  transform-origin: center left;
+}
+
+.intro-logo > div:nth-of-type(4) {
+  transform: rotateX(90deg) translateY(-50%);
+  transform-origin: top center;
+}
+
+.intro-logo > div:nth-of-type(5) {
+  transform: rotateX(-90deg) translateY(50%);
+  transform-origin: bottom center;
+}
+
+.intro-logo > div:nth-of-type(6) {
+  transform: translateZ(38px);
+}
+
+@keyframes spinner-spin {
+  0% {
+    transform: rotate(45deg) rotateX(-25deg) rotateY(25deg);
+  }
+  50% {
+    transform: rotate(45deg) rotateX(-385deg) rotateY(25deg);
+  }
+  100% {
+    transform: rotate(45deg) rotateX(-385deg) rotateY(385deg);
+  }
+}
+
+@keyframes intro-logo-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Under it, just the percentage (the ring above provides the motion) */
+.intro-percent {
+  font-size: 11px;
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  color: #e5e5e5;
+  letter-spacing: 0.02em;
+}
+
+@keyframes intro-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Small ring spinner + percentage under the logo, like the video's loader */
+.intro-loader {
+  position: absolute;
+  top: calc(50% + 62px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Based on the provided CSS-cube but rendered as a ring: a spinning arc */
+.intro-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: intro-spin 800ms linear infinite;
+}
+
+/* Respect reduced-motion: skip straight to a quick fade. */
+@media (prefers-reduced-motion: reduce) {
+  .intro-logo-wrap {
+    animation: none;
+  }
+
+  .intro-logo {
+    animation-duration: 4s;
+  }
+
+  .intro-spinner {
+    animation-duration: 1.6s;
+  }
+}
+
+/* ===== Bento-style landing page =========================================== */
+
+.landing {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent; /* sits directly on the app-wide paper texture */
+}
+
+.landing-hero {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  animation: landing-rise 600ms ease both;
+}
+
+.landing-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.landing-wordmark {
+  margin-top: 0.6rem;
+  /* Inline SVG wordmark: width-driven, height follows the SVG's aspect ratio
+     (~4.53:1 incl. the coral dot), matching the old 1.6rem text cap height. */
+  width: clamp(11rem, 22vw, 14.5rem);
+  height: auto;
+}
+
+.landing-headline {
+  margin: 1.4rem 0 0;
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  line-height: 1.12;
+  font-weight: 500;
+  color: var(--color-ink);
+  letter-spacing: -0.03em;
+}
+
+.landing-sub {
+  margin: 1rem 0 2rem;
+  max-width: 34rem;
+  font-size: 1.05rem;
   color: var(--color-muted);
 }
 
-.demo-footer p {
-  margin: 0;
+.landing-cta {
+  display: inline-block;
+  padding: 0.9rem 4.5rem;
+  border-radius: 12px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.landing-cta:hover {
+  background: var(--color-accent-deep);
+}
+
+/* --- Floating demo cards ------------------------------------------------ */
+
+.landing-floaters {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.float-card {
+  position: absolute;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(11, 18, 34, 0.07);
+  padding: 0.9rem 1rem;
+  font-size: 0.82rem;
+  animation: float-jitter 4s ease-in-out infinite;
+}
+
+/* Small uppercase feature label on each demo card */
+.float-card-tag {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a8a94;
+}
+
+/* Each card: position, size, animation delay */
+.float-card--one {
+  top: 10%;
+  left: 5%;
+  width: 190px;
+  background: #fdfaf0;
+}
+
+.float-card--two {
+  top: 48%;
+  left: 0;
+  width: 200px;
+  background: #fdf4ee;
+  animation-delay: -1.2s;
+}
+
+.float-card--three {
+  top: 16%;
+  right: 2%;
+  width: 210px;
+  background: #fdf3ec;
+  animation-delay: -2.4s;
+}
+
+.float-card--four {
+  top: 56%;
+  right: 4%;
+  width: 200px;
+  background: #f4f8fd;
+  animation-delay: -3.1s;
+}
+
+/* --- Fake timeline (card one): MINIATURE of the app's horizontal
+   card-into-card timeline — dots + a connector line above tiny sub-cards */
+
+.float-timeline {
+  position: relative;
+  display: flex;
+  gap: 0.3rem;
+  margin: 0.75rem 0 0;
+  padding: 0.55rem 0.05rem 0;
+  list-style: none;
+}
+
+/* Dots ride a short connector line above the mini-cards. */
+.float-timeline li {
+  position: relative;
+  flex: 1;
+  background: #fefbf1;
+  border: 1px solid #e5dfc8;
+  border-radius: 6px;
+  padding: 0.45rem 0.35rem;
+}
+
+.float-timeline li::before {
+  content: '';
+  position: absolute;
+  top: -0.45rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #e5dfc8;
+}
+
+.float-timeline li::after {
+  content: '';
+  position: absolute;
+  top: calc(-0.45rem - 3px);
+  left: calc(50% - 3px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+.float-tl-date {
+  display: block;
+  font-size: 0.5rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a89a55;
+}
+
+.float-tl-text {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.56rem;
+  line-height: 1.3;
+  color: #3d4152;
+}
+
+/* --- Fake claim verdict (card two) -------------------------------------- */
+
+.float-claim {
+  margin: 0.55rem 0 0.7rem;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  color: #3d4152;
+  font-style: italic;
+}
+
+.float-verdict {
+  display: inline-block;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.float-verdict--conflicting {
+  background: #fbe4e0;
+  color: #a33b2e;
+}
+
+/* --- Fake news + bias bar (card three) ---------------------------------- */
+
+.float-news {
+  margin: 0.55rem 0 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: #3d4152;
+}
+
+.float-news--strong {
+  font-weight: 500;
+}
+
+.float-bias-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #2e6fd8 0%, #9ab9e8 30%, #e8e8e8 50%, #eec3a6 70%, #d84646 100%);
+}
+
+/* The demo knob: a small GLASS CIRCLE, like the real article-card knob. */
+.float-bias-marker {
+  position: absolute;
+  top: 50%;
+  left: 58%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0) 65%
+    ),
+    rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 3px rgba(11, 18, 34, 0.08),
+    0 1px 3px rgba(11, 18, 34, 0.3);
+}
+
+.float-bias-marker::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #232a38;
+}
+
+.float-bias-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+  font-size: 0.56rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9a9aa2;
+}
+
+/* --- Fake live storyline (card four) ------------------------------------- */
+
+.float-keypoints {
+  display: block;
+  margin: 0 0 0.7rem;
+  font-size: 0.68rem;
+  color: #6b7684;
+}
+
+/* Pills: Follow */
+.float-pill {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.float-pill--indigo {
+  background: var(--color-accent);
+}
+
+@keyframes float-jitter {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-6px) rotate(-0.6deg);
+  }
+  50% {
+    transform: translateY(2px) rotate(0.4deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(-0.2deg);
+  }
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .float-card--three {
+    right: 2%;
+  }
+
+  .float-card--four {
+    right: 8%;
+  }
+}
+
+@media (max-width: 700px) {
+  .landing-floaters {
+    opacity: 0.55; /* keep cards visible but not crowding on phones */
+  }
+
+  .float-card--one {
+    top: 6%;
+    left: 4%;
+  }
+
+  .float-card--two {
+    top: auto;
+    bottom: 8%;
+    left: 4%;
+  }
+
+  .float-card--three {
+    top: 6%;
+    right: 4%;
+  }
+
+  .float-card--four {
+    top: auto;
+    bottom: 10%;
+    right: 6%;
+  }
 }
 
 /* ===== Responsive: stack sidebar above the story grid on small screens == */
 
-/* ----- GDELT live news panel (Stage: real-data integration) ------------- */
-
-.gdelt-panel {
-  margin-top: 2.25rem;
-}
-
-.gdelt-panel-heading {
-  margin: 0 0 0.75rem;
-  font-size: 1.05rem;
-}
+/* ----- Live news panel states (loading / errors / retry) ---------------- */
 
 .gdelt-panel-note {
   background: var(--color-card);
@@ -804,84 +1326,327 @@ body {
   margin-top: 0.6rem;
 }
 
-.gdelt-panel-count {
-  margin: 0 0 0.9rem;
-  font-size: 0.82rem;
-  color: var(--color-muted);
-}
+/* ----- Live stories: auto-loaded title cards + storyline page ------------ */
 
-.article-list-note--live {
-  background: #eef4fd;
-  border-color: #c9dbf4;
-  color: #2b4d7e;
-}
-
-.demo-archive {
-  margin-top: 1.25rem;
-  border: 1px dashed var(--color-line);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-}
-
-.demo-archive > summary {
-  cursor: pointer;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-muted);
-}
-
-.demo-archive[open] > summary {
-  margin-bottom: 0.75rem;
-}
-
-/* ----- Topic group chips (live-news validation harness) ----------------- */
-
-.topic-groups {
+.live-stories {
   margin-top: 2.25rem;
 }
 
-.topic-groups-label {
-  margin: 0 0 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.live-stories-note {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
   color: var(--color-muted);
+  font-size: 0.88rem;
+  margin: 0 0 1rem;
 }
 
-.topic-group-chips {
+.live-story-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+/* --- Skeleton headline-card loader --------------------------------------
+   Plain-CSS port of the Uiverse.io pulse snippet by Deri-Kurniawan
+   (animate-pulse on gray chips), reshaped to match the real story card:
+   avatar circle + text bars so the swap to real cards doesn't jump. */
+
+.story-skeleton {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+}
+
+.sk-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 0.5rem;
 }
 
-.topic-chip {
-  padding: 0.45rem 0.9rem;
-  border: 1px solid var(--color-line);
+.sk-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.sk-avatar,
+.sk-bar {
+  background: #d1d5db; /* the snippet's bg-gray-300 */
   border-radius: 999px;
-  background: #fff;
-  font-size: 0.85rem;
-  font-family: inherit;
-  color: var(--color-ink);
-  cursor: pointer;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
-.topic-chip:hover {
-  background: var(--color-brand-light);
+.sk-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%; /* the snippet's rounded-full chip */
+  flex-shrink: 0;
 }
 
-.topic-chip--active {
-  background: var(--color-brand);
-  border-color: var(--color-brand);
+.sk-bar--sm {
+  width: 62%; /* outlets/title row */
+  height: 5px;
+}
+
+.sk-bar--md {
+  width: 85%;
+  height: 8px;
+}
+
+.sk-bar--lg {
+  width: 92%; /* headline-line bars */
+  height: 8px;
+}
+
+.sk-bar--xl {
+  width: 70%;
+  height: 8px;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Stagger the bars so the set shimmers instead of blinking in lockstep. */
+.sk-row .sk-avatar {
+  animation-delay: 0ms;
+}
+
+.sk-row .sk-bar--md {
+  animation-delay: 120ms;
+}
+
+.sk-bar--lg {
+  animation-delay: 240ms;
+}
+
+.sk-bar--xl {
+  animation-delay: 360ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-avatar,
+  .sk-bar {
+    animation: none;
+    opacity: 0.55;
+  }
+}
+
+/* --- Live story title card (marque-swatch layout) -------------------------
+   From Uiverse.io by uiverse-astronaut, trimmed to the two surfaces the
+   user asked for: the indigo chip carries the HEADLINE, and below it the
+   one-sentence synopsis. The brand eyebrow, the "02" number, the horizontal
+   rule and the token list beneath it are all left out. */
+.live-story-card {
+  display: block;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--color-ink, #1a1a2e);
+  box-shadow:
+    0 24px 48px -28px rgba(71, 39, 181, 0.22),
+    0 2px 6px -2px rgba(11, 18, 34, 0.06);
+  transition:
+    transform 200ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.live-story-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 36px 60px -28px rgba(71, 39, 181, 0.32),
+    0 4px 12px -4px rgba(11, 18, 34, 0.08);
+}
+
+.live-story-card-chip {
+  position: relative;
+  display: block;
+  min-height: 7.5rem;
+  padding: 1.2rem 1.3rem;
+  background: var(--live-story-indigo, #4727b5);
+  overflow: hidden;
+}
+
+/* The card's headline chip can carry the story's first member-article
+   image straight from the source (GDELT socialimage / GNews image).
+   It sits BEHIND the stripes + headline; a scrim keeps the text legible. */
+.live-story-card-image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Indigo-to-transparent scrim: the headline stays readable over any
+   image, and the chip keeps its indigo identity at the edges. */
+.live-story-card-chip--image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(71, 39, 181, 0.45) 0%,
+    rgba(71, 39, 181, 0.78) 100%
+  );
+  pointer-events: none;
+}
+
+/* The snippet's repeating hairline stripe texture, scaled a touch denser
+   for the smaller chip. */
+.live-story-card-stripes {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0 2px,
+    transparent 2px 14px
+  );
+  pointer-events: none;
+}
+
+.live-story-card-title {
+  position: relative;
+  z-index: 3;
+  display: block;
+  font-size: 1.12rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
   color: #fff;
-  font-weight: 600;
 }
 
-.topic-groups-hint {
-  margin: 0.6rem 0 0;
-  font-size: 0.75rem;
+.live-story-card-summary {
+  display: block;
+  padding: 1.05rem 1.3rem 1.2rem;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--color-muted, #6b6680);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-story-card {
+    transition: none;
+  }
+
+  .live-story-card:hover {
+    transform: none;
+  }
+}
+
+/* ----- Left-right bias bar (MediaBias.news, unaveraged per-rater) -------
+   Horizontal track again (left → centre → right, soft gradient), but the
+   indicator is a small GLASS CIRCLE — a frosted bead with a dark centre
+   pin. Glass is applied to the knob ONLY, and it sits MORE OPAQUE than
+   transparent (a ~70% white fill carries the surface; the blur is just
+   the frosting) so it stays contrasty over the colored track. */
+
+.bias-bar {
+  margin-top: 0.6rem;
+}
+
+.bias-bar-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  /* Professional, soft hues: muted blue (left) through a paper-toned
+     neutral (centre) to muted clay (right) — no hard saturated ends. */
+  background: linear-gradient(
+    to right,
+    #6c8fd0 0%,
+    #cdd1d8 50%,
+    #d98f77 100%
+  );
+}
+
+.bias-bar-endpoint {
+  position: absolute;
+  top: 12px;
+  font-size: 0.62rem;
   color: var(--color-muted);
 }
+
+.bias-bar-endpoint--left {
+  left: 0;
+}
+
+.bias-bar-endpoint--centre {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bias-bar-endpoint--right {
+  right: 0;
+}
+
+/* The glass circular indicator: a high-opacity frosted bead centred on
+   the track at the ratings' spot (the component sets the % position).
+   Two layers make the glass read opaque yet alive: a ~70% white base
+   plus a small top-left sheen, over a light backdrop blur; hairline
+   white border and inset highlights do the bead's chamfer. */
+.bias-bar-knob {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0) 65%
+    ),
+    rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(6px) saturate(1.2);
+  -webkit-backdrop-filter: blur(6px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -3px 5px rgba(11, 18, 34, 0.08),
+    0 1px 4px rgba(11, 18, 34, 0.3);
+  z-index: 1; /* rides above the track and endpoint labels */
+}
+
+/* A small dark pin at the bead's exact centre so the precise spot stays
+   readable — the bead alone could look like a floating bubble. */
+.bias-bar-knob-pin {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #232a38;
+  box-shadow: 0 0 1px rgba(11, 18, 34, 0.4);
+}
+
+.bias-bar-caption {
+  margin: 1.15rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--color-muted);
+}
+
 
 @media (max-width: 760px) {
   .home-layout {
@@ -891,15 +1656,6 @@ body {
 
   .sidebar {
     position: static; /* no sticky floating panel on mobile */
-  }
-
-  .story-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Section C stacks: Timeline above, "What we don't know" below. */
-  .story-columns {
-    grid-template-columns: 1fr;
   }
 
   .story-page {

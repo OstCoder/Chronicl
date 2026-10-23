@@ -11,14 +11,17 @@ import { Link } from 'react-router-dom'
 export default function Header() {
   return (
     <header className="site-header">
-      <Link to="/" className="header-brand">
-        CivicTrace
+      {/* Brand + Home both lead to the NEWS page (/app): the marketing
+          landing page is pre-login only, so the signed-in app shell never
+          links back to it. */}
+      <Link to="/app" className="header-brand">
+        Chronicl
       </Link>
       <nav className="header-nav">
-        <Link to="/" className="header-nav-link">
+        <Link to="/app" className="header-nav-link">
           Home
         </Link>
-        <span className="header-badge">Demo build</span>
+        <span className="header-badge">Live wire</span>
       </nav>
     </header>
   )

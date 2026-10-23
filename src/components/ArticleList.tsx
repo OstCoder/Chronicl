@@ -1,24 +1,19 @@
 import { formatDate } from '../utils/dates'
 import type { NewsSource } from '../types'
+import BiasBar from './BiasBar'
 
 /**
- * Section D: every article or official record attached to the story.
- * Cards show newest first (sources are entered oldest->newest in demo data).
+ * Section D of a storyline page: every live article in the cluster.
+ * Cards show newest first (same non-mutating sort convention as Timeline).
  *
- * Two sources of cards use this component:
- *   - variant 'demo': story-specific fictional source cards (placeholder links)
- *   - variant 'live': real GDELT results, unverified by CivicTrace
- *
- * Either way: a publisher's bias rating (when present) is optional CONTEXT
- * about the outlet, NOT a measure of factual accuracy — cards are never
+ * A publisher's political leaning (when MediaBias.news rated it) is
+ * optional CONTEXT, NOT a measure of factual accuracy — cards are never
  * ranked, sorted, or highlighted by it.
  */
 export default function ArticleList({
   sources,
-  variant = 'demo',
 }: {
   sources: NewsSource[]
-  variant?: 'demo' | 'live'
 }) {
   // Newest first, on a copy — same non-mutating sort convention as Timeline.
   const newestFirst = [...sources].sort((a, b) =>
@@ -27,48 +22,60 @@ export default function ArticleList({
 
   return (
     <div className="article-list">
-      {variant === 'demo' ? (
-        <p className="article-list-note">
-          All links below are demonstration placeholders pending verified
-          citations. Where shown, a publisher's political-bias rating is
-          contextual metadata only.
-        </p>
-      ) : (
-        <p className="article-list-note article-list-note--live">
-          Live results from the GDELT DOC 2.0 API (last 7 days). Headlines link
-          to the original publishers; CivicTrace has not verified or classified
-          this coverage.
-        </p>
-      )}
-
       <div className="article-grid">
-        {newestFirst.map((source) => (
-          <article key={source.id} className="article-card">
+        {newestFirst.map((source, index) => (
+          <article
+            // Composite key, not source.id alone: both feed sources build ids
+            // as `${source}-${index}-${date}` with per-query indexes, so two
+            // DIFFERENT articles from different topic calls can share one id
+            // string — duplicate keys would render twice/erratically in React.
+            key={`${index}-${source.id}`}
+            className="article-card"
+          >
             <div className="article-card-meta">
               <span className="article-publisher">{source.publisher}</span>
-              <time dateTime={source.publicationDate}>{formatDate(source.publicationDate)}</time>
+              {/* Undated articles exist (GDELT's seendate can fail to parse):
+                  render an honest label instead of "Invalid Date". */}
+              {source.publicationDate ? (
+                <time dateTime={source.publicationDate}>{formatDate(source.publicationDate)}</time>
+              ) : (
+                <span>Undated</span>
+              )}
             </div>
 
-            <h3 className="article-title">
-              {/*
-                target="_blank" opens the demo link in a new tab so the story
-                page is not lost; rel="noopener noreferrer" prevents the opened
-                page from referencing back into ours.
-              */}
-              <a href={source.url} target="_blank" rel="noopener noreferrer">
-                {source.title}
-              </a>
+            {/* Headline sits on the same indigo chip the live-story cards
+                use (stripes texture over the indigo block), so both card
+                families read as one design. */}
+            <h3 className="article-headline">
+              <span className="article-headline-chip">
+                <span className="article-headline-chip-stripes" aria-hidden="true" />
+                {/**
+                 * Same link conventions as the live-story cards: a new tab
+                 * keeps the story page open, noopener keeps it isolated.
+                 */}
+                <a href={source.url} target="_blank" rel="noopener noreferrer">
+                  {source.title}
+                </a>
+              </span>
             </h3>
 
             <p className="article-desc">{source.shortDescription}</p>
 
-            <div className="article-card-footer">
-              {source.biasRating ? <span className="bias-chip">{source.biasRating}</span> : null}
-              {source.isDemo ? <span className="demo-tag">Demo source</span> : null}
-            </div>
+            {/**
+             * Left-right bar with ONE marker positioned by the rating.
+             * Present only when the outlet was found and rated in the
+             * MediaBias.news index.
+             */}
+            {source.mediaBias ? <BiasBar bias={source.mediaBias} /> : null}
           </article>
         ))}
       </div>
+
+      {/* Plain-text disclaimer UNDER the grid (not the red alert style). */}
+      <p className="article-list-note">
+        Live coverage from the past week, linked to the original publishers.
+        Chronicl hasn't verified or classified this reporting.
+      </p>
     </div>
   )
 }

@@ -1,13 +1,14 @@
 import type { StoryCategory } from '../types'
 
 /**
- * REAL topic groups — the live-data validation harness.
+ * REAL topic queries — the live pipeline's filter mapping.
  *
- * These are the ONLY inputs the GDELT integration ever uses. The fictional
- * demo stories (Powell's Run, Millcreek, etc.) stay purely as demo content
- * for the Claim Ledger / Timeline / gaps sections and NEVER feed live
- * queries — fictional entities cannot return real coverage, which is why
- * the first integration attempt showed "no articles".
+ * Each StoryCategory maps to a curated real-topic GDELT query. The bulk
+ * pipeline (liveFeed) OR-combines ALL of these into one union request and
+ * re-derives per-article categories with the extracted keywords, and the
+ * enrichment floor top-ups re-dial each query directly. There are no demo
+ * stories and no search: this file is now the ONLY data file in src/data,
+ * and TOPIC_CATEGORIES below feeds the Sidebar buttons.
  */
 export interface TopicGroup {
   id: string
@@ -56,10 +57,5 @@ export const TOPIC_GROUPS: TopicGroup[] = [
   },
 ]
 
-/**
- * Story pages fetch REAL coverage for their topic AREA (mapped from the
- * story's category), never for their fictional names/keywords.
- */
-export function getTopicQueryForCategory(category: StoryCategory): string {
-  return TOPIC_GROUPS.find((group) => group.category === category)?.gdeltQuery ?? ''
-}
+/** Sidebar filter labels, in topic-group order. */
+export const TOPIC_CATEGORIES: StoryCategory[] = TOPIC_GROUPS.map((group) => group.category)
