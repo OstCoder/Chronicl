@@ -443,3 +443,53 @@ export async function fetchCombinedFeed(query: string, signal?: AbortSignal): Pr
   merged.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
   return { articles: merged, sourceStatus, errors }
 }
+
+/**
+ * Merge a filter top-up's headlines into an already-ready feed (pure copy).
+ * Used by the store's ensureCategoryHeadlines: when a topic filter would
+ * render ZERO headlines (the stored snapshot can simply hold none for a
+ * category), the store dials that filter's GDELT query directly and the
+ * result lands here. Same merge rules as the other pipelines:
+ *   - dedupe against the FULL feed (host + title prefix),
+ *   - respect COMBINED_FEED_CAP,
+ *   - append at the END, never re-sort — group.articleIds are 1-based
+ *     positions into the payload and every consumer resolves them
+ *     positionally (same rule as enrichAllTopicsFeed).
+ * Returns { feed, added }: feed unchanged when nothing new landed.
+ */
+export function appendCategoryArticles(
+  feed: AllTopicsFeed,
+  category: StoryCategory,
+  articles: LiveNewsArticle[],
+): { feed: AllTopicsFeed; added: number } {
+  const seen = new Set<string>()
+  for (const article of feed.articles) {
+    seen.add(dedupeKey(article))
+  }
+  const appended: TaggedArticle[] = []
+  for (const article of articles) {
+    if (feed.articles.length + appended.length >= COMBINED_FEED_CAP) {
+      break
+    }
+    const key = dedupeKey(article)
+    if (seen.has(key)) {
+      continue
+    }
+    seen.add(key)
+    appended.push({ ...article, topicCategory: category })
+  }
+  const added = appended.length
+  if (added === 0) {
+    return { feed, added: 0 }
+  }
+  const fetchedPerCategory = { ...feed.fetchedPerCategory }
+  fetchedPerCategory[category] = (fetchedPerCategory[category] ?? 0) + added
+  return {
+    feed: {
+      ...feed,
+      articles: [...feed.articles, ...appended],
+      fetchedPerCategory,
+    },
+    added,
+  }
+}

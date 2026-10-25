@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import useLiveStories from '../hooks/useLiveStories'
 import { useLiveStorySources } from '../hooks/useLiveStorySources'
+import { ensureCategoryHeadlines } from '../services/liveStoriesStore'
 import { StoryGridSkeleton } from './StoryCardSkeleton'
 import type { ArticleGroup, NewsSource } from '../types'
 import type { StoryCategory } from '../types'
@@ -30,15 +31,94 @@ export default function LiveStoriesSection({
   // cache-recovery path, so IDs line up between the two views).
   const { articles, sources } = useLiveStorySources()
 
-  // Client-side filtering — the tabs never re-run the pipeline. Each group
-  // renders under its AI-assigned primary category.
-  const filteredGroups = useMemo(
+  // Filter guarantee, tier 3's backstop: when the selected filter has ZERO
+  // headlines in the payload at all, ask the store to dial that category's
+  // GDELT query once (GNews fallback) and merge the result in. Local note
+  // state only mirrors "a top-up is pending"; the headlines themselves
+  // arrive through the store's normal notification.
+  const payloadHasCategory = useMemo(
     () =>
-      selectedCategory === null
-        ? groups
-        : groups.filter((group) => group.topic === selectedCategory),
-    [groups, selectedCategory],
+      selectedCategory !== null &&
+      articles.some((article) => article.topicCategory === selectedCategory),
+    [articles, selectedCategory],
   )
+  // Both top-up sources refusing lands an honest note in feed.errors —
+  // use it to swap the "fetching" note for an honest failed one instead
+  // of showing "pulling…" forever.
+  const topUpFailed = useMemo(
+    () =>
+      selectedCategory !== null &&
+      (feed?.errors ?? []).some((entry) =>
+        entry.startsWith(`Filter top-up (${selectedCategory})`),
+      ),
+    [feed, selectedCategory],
+  )
+  // DERIVED, not stored: pending simply means "this filter would be blank,
+  // and its top-up hasn't succeeded or failed yet". No effect-side setState
+  // (react-hooks/set-state-in-effect), and the note can never desync from
+  // the real payload state after re-renders.
+  const topUpPending =
+    selectedCategory !== null && !payloadHasCategory && !topUpFailed
+      ? selectedCategory
+      : null
+  useEffect(() => {
+    if (selectedCategory === null || payloadHasCategory || topUpFailed) {
+      return
+    }
+    ensureCategoryHeadlines(selectedCategory)
+  }, [selectedCategory, payloadHasCategory, topUpFailed])
+
+  // Client-side filtering — the tabs never re-run the pipeline. Each group
+  // renders under its AI-assigned primary category, with a guarantee the
+  // product insists on: EVERY filter shows at least one headline. Three
+  // tiers, first non-empty wins:
+  //   1. storylines the AI tagged with that topic (the normal case);
+  //   2. any storyline whose MEMBER ARTICLES carry that category (the AI
+  //      filed one under 'Community', say, but it reports on education);
+  //   3. one synthesized card over the category's own feed headlines —
+  //      real headlines, newest first — so a filter is never blank even
+  //      when the grouping never produced/passed a storyline for it. The
+  //      card opens a simple story page listing those headlines (no
+  //      timeline/keys/questions — those fields stay honestly empty).
+  const filteredGroups = useMemo((): ArticleGroup[] => {
+    if (selectedCategory === null) {
+      return groups
+    }
+    const byTopic = groups.filter((group) => group.topic === selectedCategory)
+    if (byTopic.length > 0) {
+      return byTopic
+    }
+    const byMember = groups.filter((group) =>
+      group.articleIds.some((id) => articles[id - 1]?.topicCategory === selectedCategory),
+    )
+    if (byMember.length > 0) {
+      return byMember
+    }
+    // Tier 3 only: the payload holds headlines for this category but no
+    // storyline carries any of them. Synthesize one card; the articleIds
+    // follow the same 1-based payload indexing as AI groupings, so the
+    // story page (and this component's image lookup) resolve unchanged.
+    const articleIds = articles
+      .map((article, index) => (article.topicCategory === selectedCategory ? index + 1 : 0))
+      .filter((id) => id > 0)
+    if (articleIds.length === 0) {
+      return []
+    }
+    const latest = articles[articleIds[0] - 1]
+    return [
+      {
+        title: latest.title,
+        topic: selectedCategory,
+        summary:
+          `${articleIds.length} ${selectedCategory.toLowerCase()} headline${articleIds.length === 1 ? '' : 's'} in this load — shown ungrouped because the AI storyline grouping has not produced one here yet.`,
+        articleIds,
+        keyPoints: [],
+        openQuestions: [],
+        caseClosed: false,
+        timeline: [],
+      },
+    ]
+  }, [groups, articles, selectedCategory])
 
   /**
    * Card image: the first member article (of the group's 1-based
@@ -117,6 +197,22 @@ export default function LiveStoriesSection({
                   />
                 )
               })}
+            </div>
+          ) : selectedCategory !== null && topUpFailed ? (
+            // The live top-up already ran and both sources refused: keep the
+            // empty filter honest instead of pretending it will fill itself.
+            <div className="gdelt-panel-note no-results">
+              <p>
+                Nothing tagged "{selectedCategory}" came back from the live index just now —
+                try again in a moment, or check All topics.
+              </p>
+            </div>
+          ) : selectedCategory !== null && topUpPending === selectedCategory ? (
+            <div className="gdelt-panel-note no-results">
+              <p>
+                No "{selectedCategory}" headlines in this load — pulling a few from the live
+                index so this filter is never empty…
+              </p>
             </div>
           ) : grouping?.status === 'success' ? (
             <div className="gdelt-panel-note no-results">

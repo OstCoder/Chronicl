@@ -19,10 +19,11 @@ interface LiveStoryNavigation {
  *
  *   ┌────────────────────────────────────────────┐
  *   │ Story overview — title + summary           │
- *   ├───────────────────────┬────────────────────┤
- *   │ Timeline (events)     │ What we still      │
- *   │                       │ don't know         │
- *   ├───────────────────────┴────────────────────┤
+ *   ├────────────────────────────────────────────┤
+ *   │ Timeline (events)                          │
+ *   ├────────────────────────────────────────────┤
+ *   │ What we still don't know                   │
+ *   ├────────────────────────────────────────────┤
  *   │ News articles and official sources         │
  *   └────────────────────────────────────────────┘
  *
@@ -156,41 +157,40 @@ export default function LiveStoryPage() {
         ) : null}
       </section>
 
-      {/* Row 2: timeline (left) + open questions (right) */}
-      <div className="story-bento-row">
-        <section className="story-bento story-bento--timeline">
-          <div className="story-bento-head">
-            <span className="story-bento-side">
-              {outlets.size} outlet{outlets.size === 1 ? '' : 's'} tracked
-            </span>
-            <h2 className="story-bento-heading">Timeline</h2>
-          </div>
-          {timelineEvents.length > 0 ? (
-            <Timeline
-              events={timelineEvents}
-              sources={memberSources}
-              caseClosed={group.caseClosed}
-            />
-          ) : (
-            <p className="story-bento-empty">No date-backed timeline entries for this storyline.</p>
-          )}
-        </section>
+      {/* Row 2: full-width timeline — "What we still don't know" moved
+          BELOW the timeline (full width) per product request. */}
+      <section className="story-bento story-bento--timeline">
+        <div className="story-bento-head">
+          <span className="story-bento-side">
+            {outlets.size} outlet{outlets.size === 1 ? '' : 's'} tracked
+          </span>
+          <h2 className="story-bento-heading">Timeline</h2>
+        </div>
+        {timelineEvents.length > 0 ? (
+          <Timeline
+            events={timelineEvents}
+            sources={memberSources}
+            caseClosed={group.caseClosed}
+          />
+        ) : (
+          <p className="story-bento-empty">No date-backed timeline entries for this storyline.</p>
+        )}
+      </section>
 
-        <section className="story-bento story-bento--questions">
-          <h2 className="story-bento-heading">What we still don't know</h2>
-          {group.openQuestions.length > 0 ? (
-            <ul className="story-questions">
-              {group.openQuestions.map((question, index) => (
-                <li key={index}>{question}</li>
-              ))}
-            </ul>
-          ) : group.caseClosed ? (
-            <p className="story-bento-empty">This case is closed — no open questions recorded.</p>
-          ) : (
-            <p className="story-bento-empty">No open questions for this storyline yet.</p>
-          )}
-        </section>
-      </div>
+      <section className="story-bento story-bento--questions">
+        <h2 className="story-bento-heading">What we still don't know</h2>
+        {group.openQuestions.length > 0 ? (
+          <ul className="story-questions">
+            {group.openQuestions.map((question, index) => (
+              <li key={index}>{question}</li>
+            ))}
+          </ul>
+        ) : group.caseClosed ? (
+          <p className="story-bento-empty">This case is closed — no open questions recorded.</p>
+        ) : (
+          <p className="story-bento-empty">No open questions for this storyline yet.</p>
+        )}
+      </section>
 
       {/* Row 3: full-width sources */}
       <section className="story-bento story-bento--sources">

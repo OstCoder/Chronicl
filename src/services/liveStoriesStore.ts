@@ -1,17 +1,21 @@
 import {
+  appendCategoryArticles,
   enrichAllTopicsFeed,
   fetchAllTopicsFeed,
   type AllTopicsFeed,
   type CombinedFeed,
 } from './liveFeed'
-
-/** Anything the store hands to the UI for one pipeline key. */
-type FeedBundle = AllTopicsFeed | CombinedFeed
+import { fetchLiveNews, type LiveNewsArticle } from './gdelt'
+import { fetchLiveGnewsArticles } from './gnews'
+import { TOPIC_GROUPS } from '../data/topicGroups'
 import { groupArticles, GroqRateLimitError, type GroqArticleInput } from './groq'
-import type { ArticleGroup } from '../types'
+import type { ArticleGroup, StoryCategory } from '../types'
 import type { TaggedArticle } from './liveFeed'
 import { SESSION_TTL_MS } from '../utils/session'
 import { fetchStoredTopicsFeed, supabaseReady } from './storedFeed'
+
+/** Anything the store hands to the UI for one pipeline key. */
+type FeedBundle = AllTopicsFeed | CombinedFeed
 
 /**
  * Session-level store for the daily-snapshot pipeline.
@@ -443,6 +447,109 @@ function runGrouping(key: string, feed: AllTopicsFeed | CombinedFeed): void {
         grouping: {
           status: rateLimited ? 'rateLimited' : 'error',
           error: caught instanceof Error ? caught.message : 'Unknown error.',
+        },
+        updatedAt: Date.now(),
+      })
+      notify()
+    })
+}
+
+/**
+ * Per-category one-shot guard for ensureCategoryHeadlines.
+ */
+const inFlightTopUps = new Set<string>()
+
+/**
+ * The LAST-LINE guarantee behind the product rule "every topic filter shows
+ * at least one headline". Runs ONLY when the ready feed holds zero
+ * headlines for a category (the stored snapshot or a thin live load can
+ * genuinely have none — the enrichment floor top-ups don't apply to the
+ * snapshot path): dials that category's own GDELT query once (GNews on
+ * GDELT failure), merges the result into the feed via
+ * appendCategoryArticles, and notifies. POSTS no Groq regroup — the UI's
+ * fallback card (LiveStoriesSection tier 3) renders the new headlines
+ * directly; the next full pipeline run groups them normally.
+ * Idempotent: in-flight guard per category, no-op when the feed already
+ * carries articles of that category, honest error note into feed.errors on
+ * total failure. Never throws.
+ */
+export function ensureCategoryHeadlines(category: StoryCategory): void {
+  const current = states.get(activeKey || ALL_KEY)
+  if (
+    !current ||
+    current.status !== 'ready' ||
+    !current.feed ||
+    !isAllTopicsFeed(current.feed) ||
+    current.feed.articles.some((article) => article.topicCategory === category) ||
+    inFlightTopUps.has(category)
+  ) {
+    return
+  }
+  const topic = TOPIC_GROUPS.find((group) => group.category === category)
+  if (!topic) {
+    return
+  }
+  inFlightTopUps.add(category)
+  const key = current.key
+  // GDELT first (free, key-less); GNews as the retry path so a rate-limited
+  // or network-failed GDELT dial still gets a second, different source.
+  fetchLiveNews(topic.gdeltQuery, { maxRecords: 10 })
+    .catch(() => fetchLiveGnewsArticles(topic.gdeltQuery, { maxRecords: 10 }))
+    .then((articles: LiveNewsArticle[]) => {
+      inFlightTopUps.delete(category)
+      const state = states.get(key)
+      if (
+        !state ||
+        state.status !== 'ready' ||
+        !state.feed ||
+        !isAllTopicsFeed(state.feed)
+      ) {
+        return // superseded by a refresh/reload of the pipeline
+      }
+      const { feed, added } = appendCategoryArticles(state.feed, category, articles)
+      if (added === 0) {
+        // Neither source returned anything usable (empty results or every
+        // hit deduped away). Record it as a top-up note so the UI's derived
+        // "pulling…" state releases into the failed note instead of
+        // claiming a fetch is still in progress.
+        states.set(key, {
+          ...state,
+          feed: {
+            ...state.feed,
+            errors: [
+              ...state.feed.errors,
+              `Filter top-up (${category}): no new headlines landed from GDELT/GNews.`,
+            ],
+          },
+          updatedAt: Date.now(),
+        })
+        notify()
+        return
+      }
+      states.set(key, {
+        ...state,
+        feed,
+        updatedAt: Date.now(),
+      })
+      notify()
+    })
+    .catch((error: unknown) => {
+      inFlightTopUps.delete(category)
+      const state = states.get(key)
+      if (
+        !state ||
+        state.status !== 'ready' ||
+        !state.feed ||
+        !isAllTopicsFeed(state.feed)
+      ) {
+        return
+      }
+      const cause = error instanceof Error ? error.message : 'unknown error'
+      states.set(key, {
+        ...state,
+        feed: {
+          ...state.feed,
+          errors: [...state.feed.errors, `Filter top-up (${category}): ${cause}`],
         },
         updatedAt: Date.now(),
       })

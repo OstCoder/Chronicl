@@ -347,9 +347,10 @@ body {
 }
 
 /* --- Bento layout for the live story detail page (WHITE theme) ------------
-   Same card arrangement as the spec screenshot — full-width overview,
-   then Timeline + "What we still don't know" side by side, then
-   full-width sources — but themed to the app's white/light palette per
+   Same card arrangement as the spec screenshot, restacked per product
+   request — full-width overview, full-width timeline, "What we still
+   don't know" in full width UNDER the timeline, then full-width
+   sources — but themed to the app's white/light palette per
    the user: dark text on white cards, light gray page. */
 
 .story-page--bento {
@@ -423,11 +424,10 @@ body {
 }
 
 
-.story-bento-row {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 1rem;
-  margin: 1rem 0 0;
+/* Stacked bento cards: one rhythm line between the full-width cards
+   (the spacing previously came from the removed side-by-side row). */
+.story-page--bento .story-bento + .story-bento {
+  margin-top: 1rem;
 }
 
 .story-bento-head {
@@ -483,11 +483,6 @@ body {
   color: var(--color-brand);
 }
 
-@media (max-width: 760px) {
-  .story-bento-row {
-    grid-template-columns: 1fr;
-  }
-}
 
 
 
@@ -795,7 +790,7 @@ body.intro-lock {
   justify-content: center;
   background: #000;
   opacity: 1;
-  transition: opacity 500ms ease;
+  transition: opacity 300ms ease;
 }
 
 .intro-splash--fading {
@@ -1013,6 +1008,27 @@ body.intro-lock {
   margin: 0.55rem 0 0;
   font-size: 0.8rem;
   color: var(--color-muted);
+}
+
+/* Social proof above the fold: one beta-reader line directly under the
+   CTA + note — a quiet testimonial that stays subordinate to the hero
+   headline, not a competing block. */
+.landing-hero-quote {
+  margin: 1.4rem 0 0;
+  max-width: 30rem;
+}
+
+.landing-hero-quote blockquote {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+.landing-hero-quote figcaption {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #8a8a94;
 }
 
 /* --- Keyboard skip link (audit accessibility 2.4.1) ---------------------

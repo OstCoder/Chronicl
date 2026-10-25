@@ -7,8 +7,9 @@ import { useIntroSplash } from '../hooks/useIntroSplash'
  * that races up and then crawls to 99% — finally the whole screen fades
  * into the app.
  *
- * Runs on every page load (see useIntroSplash for timing) and renders
- * nothing once the ~2s sequence is done.
+ * Runs on the FIRST pageview of a browser tab only (see useIntroSplash for
+ * the session rule) and renders nothing once the ~0.9s sequence is done —
+ * every later load in that tab lands on the page immediately.
  */
 export default function IntroSplash() {
   const { seen, count, fading } = useIntroSplash()
