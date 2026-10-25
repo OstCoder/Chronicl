@@ -117,18 +117,29 @@ export default function LandingPage() {
           <img src={brandMark} alt="Chronicl" className="landing-icon" />
           <img src={wordmark} alt="Chronicl" className="landing-wordmark" />
           <h1 className="landing-headline">
-            Never lose track of a breaking story again.
+            One page per story. Every outlet. Every contradiction.
           </h1>
           <p className="landing-sub">
-            Follow breaking stories across outlets, catch contradictions as
-            they happen, and always know which claims have been checked — all
-            grouped onto one live page, per story.
+            Chronicl groups every outlet's take on a breaking civic story into
+            one live page — with a dated timeline, every source one click from
+            the original publisher, and bias context kept separate so you draw
+            your own conclusions.
           </p>
 
           <Link to="/app" className="landing-cta">
             Track My First Story
           </Link>
           <p className="landing-cta-note">Free to start — no account, no card.</p>
+
+          {/* One beta quote ABOVE the fold (audit item: the three quotes
+              were buried mid-page). Honest and specific > generic praise. */}
+          <figure className="landing-hero-quote">
+            <blockquote>
+              "The 'what we still don't know' box is the part no other news
+              app gives me. It tells me what the reporting is missing."
+            </blockquote>
+            <figcaption>— Marcus T., beta reader</figcaption>
+          </figure>
         </div>
       </div>
 
@@ -162,13 +173,6 @@ export default function LandingPage() {
                 me which coverage was new today."
               </p>
               <figcaption>— Dana R., beta reader</figcaption>
-            </figure>
-            <figure>
-              <p>
-                "The 'what we still don't know' box is the part no other news
-                app gives me. It tells me what the reporting is missing."
-              </p>
-              <figcaption>— Marcus T., beta reader</figcaption>
             </figure>
             <figure>
               <p>
