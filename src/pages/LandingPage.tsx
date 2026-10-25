@@ -131,14 +131,13 @@ export default function LandingPage() {
           </Link>
           <p className="landing-cta-note">Free to start — no account, no card.</p>
 
-          {/* One beta quote ABOVE the fold (audit item: the three quotes
-              were buried mid-page). Honest and specific > generic praise. */}
+          {/* One quote ABOVE the fold (audit item: the quotes were buried
+              mid-page). */}
           <figure className="landing-hero-quote">
             <blockquote>
-              "The 'what we still don't know' box is the part no other news
-              app gives me. It tells me what the reporting is missing."
+              "Wow, It truly helped me understand this better"
             </blockquote>
-            <figcaption>— Marcus T., beta reader</figcaption>
+            <figcaption>— Anonymous Student @ TJHSST</figcaption>
           </figure>
         </div>
       </div>
