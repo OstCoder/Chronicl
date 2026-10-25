@@ -19,4 +19,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  // Server-side code (Vite's dev middleware config, the shared grouping
+  // config, the api/ serverless functions) runs on Node: process.env,
+  // setTimeout and friends are defined there, unlike the browser bundle.
+  {
+    files: ['vite.config.ts', 'shared/**/*.ts', 'api/**/*.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

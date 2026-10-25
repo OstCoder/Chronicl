@@ -1,7 +1,7 @@
 import { fetchLiveNews, type LiveNewsArticle } from './gdelt'
 import { fetchLiveGnewsArticles } from './gnews'
 import { TOPIC_GROUPS } from '../data/topicGroups'
-import type { StoryCategory } from '../types'
+import type { ArticleGroup, StoryCategory } from '../types'
 
 /**
  * Live feed services — the single fetch layer the pipeline store uses,
@@ -491,5 +491,46 @@ export function appendCategoryArticles(
       fetchedPerCategory,
     },
     added,
+  }
+}
+
+/**
+ * The tier-3 UNGROUPED storyline for one topic category: a synthesized
+ * one-card grouping over that category's own payload headlines, shown
+ * when the AI grouping has not produced/passed a storyline for it — so a
+ * filter is never blank.
+ *
+ * Shared by BOTH views so the shapes stay identical:
+ *   - LiveStoriesSection renders it in the feed (tier 3), and
+ *   - LiveStoryPage rebuilds it for the deep-link/refresh recovery of a
+ *     synthesized card (which points at /live-story/synthesized?cat=...
+ *     — NOT at a numeric group index, because this group is NOT a member
+ *     of the cached `groups` array and a numeric link would hit a stale
+ *     index or /live-story/-1 and render "link expired").
+ *
+ * articleIds follow the same 1-based payload indexing as AI groupings;
+ * NULL when the payload holds no headline for the category.
+ */
+export function ungroupedStorylineFor(
+  category: StoryCategory,
+  articles: readonly TaggedArticle[],
+): ArticleGroup | null {
+  const articleIds = articles
+    .map((article, index) => (article.topicCategory === category ? index + 1 : 0))
+    .filter((id) => id > 0)
+  if (articleIds.length === 0) {
+    return null
+  }
+  const latest = articles[articleIds[0] - 1]
+  return {
+    title: latest.title,
+    topic: category,
+    summary:
+      `${articleIds.length} ${category.toLowerCase()} headline${articleIds.length === 1 ? '' : 's'} in this load — shown ungrouped because the AI storyline grouping has not produced one here yet.`,
+    articleIds,
+    keyPoints: [],
+    openQuestions: [],
+    caseClosed: false,
+    timeline: [],
   }
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import useLiveStories from '../hooks/useLiveStories'
 import { useLiveStorySources } from '../hooks/useLiveStorySources'
 import { ensureCategoryHeadlines } from '../services/liveStoriesStore'
+import { ungroupedStorylineFor } from '../services/liveFeed'
 import { StoryGridSkeleton } from './StoryCardSkeleton'
 import type { ArticleGroup, NewsSource } from '../types'
 import type { StoryCategory } from '../types'
@@ -95,29 +96,11 @@ export default function LiveStoriesSection({
       return byMember
     }
     // Tier 3 only: the payload holds headlines for this category but no
-    // storyline carries any of them. Synthesize one card; the articleIds
-    // follow the same 1-based payload indexing as AI groupings, so the
-    // story page (and this component's image lookup) resolve unchanged.
-    const articleIds = articles
-      .map((article, index) => (article.topicCategory === selectedCategory ? index + 1 : 0))
-      .filter((id) => id > 0)
-    if (articleIds.length === 0) {
-      return []
-    }
-    const latest = articles[articleIds[0] - 1]
-    return [
-      {
-        title: latest.title,
-        topic: selectedCategory,
-        summary:
-          `${articleIds.length} ${selectedCategory.toLowerCase()} headline${articleIds.length === 1 ? '' : 's'} in this load — shown ungrouped because the AI storyline grouping has not produced one here yet.`,
-        articleIds,
-        keyPoints: [],
-        openQuestions: [],
-        caseClosed: false,
-        timeline: [],
-      },
-    ]
+    // storyline carries any of them. Synthesize one card via the shared
+    // helper (LiveStoryPage rebuilds the SAME group for deep links, see
+    // ungroupedStorylineFor for why the link is not a numeric index).
+    const synthesized = ungroupedStorylineFor(selectedCategory, articles)
+    return synthesized ? [synthesized] : []
   }, [groups, articles, selectedCategory])
 
   /**
@@ -163,10 +146,13 @@ export default function LiveStoriesSection({
 
       {status === 'ready' && feed !== null ? (
         <>
-          {grouping?.status === 'loading' ? (
+          {/* Headlines are in but not yet AI-grouped (FIRST grouping run or
+              a restored mid-grouping snapshot): skeleton + live status line.
+              A CATCH-UP regroup (enrichment added headlines) must NOT tear
+              the visible story cards back into skeletons — keep the cards
+              on screen while the regroup runs, then they swap in place. */}
+          {grouping?.status === 'loading' && filteredGroups.length === 0 ? (
             <>
-              {/* Headlines are in but not yet AI-grouped: same skeleton,
-                  with a live status line so the wait reads as progress. */}
               <p className="live-stories-note">
                 Grouping {articles.length} headlines into distinct storylines…
               </p>
@@ -186,14 +172,25 @@ export default function LiveStoriesSection({
             <div className="live-story-grid">
               {filteredGroups.map((group) => {
                 const globalIndex = groups.indexOf(group)
+                // A synthesized (tier-3) group is NOT a member of `groups`:
+                // indexOf returns -1 and a /live-story/-1 link would always
+                // render "expired" after refresh. Such a card links to the
+                // category-keyed recovery URL instead (LiveStoryPage
+                // rebuilds the identical group from the cached payload).
+                const isSynthesized = globalIndex === -1
                 return (
                   <LiveStoryCard
-                    key={`${group.topic}-${globalIndex}-${group.title}`}
+                    key={
+                      isSynthesized
+                        ? `${group.topic}-synthesized-${group.title}`
+                        : `${group.topic}-${globalIndex}-${group.title}`
+                    }
                     group={group}
                     index={globalIndex}
                     sources={sources}
                     groups={groups}
                     image={imageForGroup(group)}
+                    synthesizedCategory={isSynthesized ? group.topic : null}
                   />
                 )
               })}
@@ -236,17 +233,29 @@ interface LiveStoryCardProps {
   groups: ArticleGroup[]
   /** Article image for the chip, when any member article has one. */
   image?: string
+  /**
+   * Topic category when this card is the synthesized tier-3 storyline:
+   * it has no numeric index into `groups`, so its link carries the
+   * category instead (LiveStoryPage rebuilds the group from it).
+   */
+  synthesizedCategory: ArticleGroup['topic'] | null
 }
 
 /** One headline card: indigo chip (optional article image behind the
     stripes) + headline inside it, one-sentence synopsis below. */
-function LiveStoryCard({ group, index, sources, groups, image }: LiveStoryCardProps) {
+function LiveStoryCard({
+  group,
+  index,
+  sources,
+  groups,
+  image,
+  synthesizedCategory,
+}: LiveStoryCardProps) {
+  const to = synthesizedCategory
+    ? `/live-story/synthesized?cat=${encodeURIComponent(synthesizedCategory)}`
+    : `/live-story/${index}`
   return (
-    <Link
-      className="live-story-card"
-      to={`/live-story/${index}`}
-      state={{ group, groups, sources }}
-    >
+    <Link className="live-story-card" to={to} state={{ group, groups, sources }}>
       <span
         className={
           image

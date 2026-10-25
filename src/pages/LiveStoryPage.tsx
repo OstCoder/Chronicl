@@ -3,7 +3,9 @@ import ArticleList from '../components/ArticleList'
 import Timeline from '../components/Timeline'
 import useLiveStories from '../hooks/useLiveStories'
 import { useLiveStorySources } from '../hooks/useLiveStorySources'
-import type { ArticleGroup, NewsSource, TimelineEvent } from '../types'
+import { TOPIC_CATEGORIES } from '../data/topicGroups'
+import { ungroupedStorylineFor } from '../services/liveFeed'
+import type { ArticleGroup, NewsSource, StoryCategory, TimelineEvent } from '../types'
 
 interface LiveStoryNavigation {
   state: {
@@ -33,17 +35,19 @@ interface LiveStoryNavigation {
  */
 export default function LiveStoryPage() {
   const { groupId } = useParams()
-  const { state } = useLocation() as unknown as LiveStoryNavigation
+  const { state, search } = useLocation() as unknown as LiveStoryNavigation & {
+    search: string
+  }
   const { groups: cachedGroups } = useLiveStories()
-  const { sources: cachedSources } = useLiveStorySources()
+  const { sources: cachedSources, articles: cachedArticles } = useLiveStorySources()
 
   // --- Resolve group + sources ------------------------------------------
   let group: ArticleGroup | undefined = state?.group
   let sources: NewsSource[] = state?.sources ?? []
 
   if (!group) {
-    // Recovery path: the URL carries the group's index into the cached
-    // grouping (cards link as /live-story/<globalIndex>).
+    // Recovery path 1 (numeric cards): the URL carries the group's index
+    // into the cached grouping (cards link as /live-story/<globalIndex>).
     const index = Number.parseInt(groupId ?? '', 10)
     if (
       Number.isInteger(index) &&
@@ -53,6 +57,27 @@ export default function LiveStoryPage() {
     ) {
       group = cachedGroups[index]
       sources = cachedSources
+    }
+  }
+
+  if (!group) {
+    // Recovery path 2 (synthesized tier-3 cards): those have NO numeric
+    // index into `groups` (their links are /live-story/synthesized?cat=...),
+    // so they rebuild deterministically from the category + cached payload
+    // via the SHARED helper — the identical group LiveStoriesSection
+    // rendered. Needs both the articles (payload positions) and sources.
+    const catParam = new URLSearchParams(search).get('cat') ?? ''
+    if (
+      groupId === 'synthesized' &&
+      cachedArticles.length > 0 &&
+      cachedSources.length > 0 &&
+      (TOPIC_CATEGORIES as string[]).includes(catParam)
+    ) {
+      const rebuilt = ungroupedStorylineFor(catParam as StoryCategory, cachedArticles)
+      if (rebuilt) {
+        group = rebuilt
+        sources = cachedSources
+      }
     }
   }
 
