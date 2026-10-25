@@ -5,6 +5,11 @@
 // storage) it:
 //   1. fetches the past 7 days from GNews (per-filter queries) and GDELT
 //      (ONE union query),
+//   1b. tops up any topic filter still under HEADLINES_PER_CATEGORY with
+//      direct per-topic GDELT dials — so the SNAPSHOT ALONE satisfies every
+//      topic filter and the browser never needs live top-up fetches at
+//      visit time (each browser-side filter click stays an instant,
+//      zero-request client-side filter),
 //   2. tags headlines with the filter they belong to — the SAME phrase
 //      matching as the browser pipeline (src/services/liveFeed.ts):
 //      quoted phrases atomically, leftover union headlines unclaimed by
@@ -20,7 +25,9 @@
 // GROQ is intentionally NOT used here — grouping happens in the browser
 // over the stored snapshot, exactly like the user requested.
 //
-// KEEP IN SYNC: FILTERS below must match src/data/topicGroups.ts.
+// KEEP IN SYNC: FILTERS below must match src/data/topicGroups.ts, and
+// HEADLINES_PER_CATEGORY must match MIN_HEADLINES_PER_CATEGORY in
+// src/services/liveFeed.ts (same floor, both sides, one guarantee).
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
@@ -39,11 +46,21 @@ const FILTERS: TopicFilter[] = [
 
 const GDELT_ENDPOINT = 'https://api.gdeltproject.org/api/v2/doc/doc'
 const GNEWS_ENDPOINT = 'https://gnews.io/api/v4/search'
-/** GDELT allows ~1 request / 5s server-side; this job makes exactly one. */
+/** GDELT allows ~1 request / 5s server-side; this job makes the union
+ *  call plus (only when a filter fell short) up to one dial per filter. */
 const LOOKBACK_DAYS = 7
 const PRUNE_OLDER_THAN_DAYS = 14
 /** Same cap the browser pipeline enforces, so both sides agree. */
 const HEADLINE_CAP = 75
+/**
+ * Headline floor PER FILTER — mirrors MIN_HEADLINES_PER_CATEGORY in
+ * src/services/liveFeed.ts. Every topic filter must find at least this
+ * many headlines in the snapshot, or the browser has to fetch (the thing
+ * this job exists to prevent). Met in two steps below: a direct per-topic
+ * GDELT dial for deficient categories, then floor-first selection under
+ * the cap so a flood in one category cannot starve another.
+ */
+const HEADLINES_PER_CATEGORY = 5
 
 interface RawHeadline {
   title: string
@@ -112,12 +129,26 @@ function isoDateOnly(value: unknown): string {
     : ''
 }
 
-async function fetchGdelt(signal?: AbortSignal): Promise<RawHeadline[]> {
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }, { once: true })
+  })
+}
+
+async function fetchGdelt(
+  query: string,
+  signal?: AbortSignal,
+  maxRecords = 75,
+): Promise<RawHeadline[]> {
   const url = new URL(GDELT_ENDPOINT)
-  url.searchParams.set('query', gdeltUnionQuery())
+  url.searchParams.set('query', query)
   url.searchParams.set('mode', 'artlist')
   url.searchParams.set('format', 'json')
-  url.searchParams.set('maxrecords', '75')
+  url.searchParams.set('maxrecords', String(maxRecords))
   url.searchParams.set('timespan', `${LOOKBACK_DAYS}d`)
   url.searchParams.set('sort', 'datedesc')
 
@@ -175,6 +206,29 @@ async function fetchGdelt(signal?: AbortSignal): Promise<RawHeadline[]> {
     })
   }
   return out
+}
+
+/**
+ * One floor top-up dial, rate-limit aware: GDELT's rolling IP block can
+ * 429 calls that sit inside the 5s window, so a 429 (and only a 429) gets
+ * ONE bounded wait + retry before this gives up — the category simply
+ * reports its unmet floor in the summary instead of failing the ingest.
+ */
+async function fetchGdeltTopUp(
+  query: string,
+  signal?: AbortSignal,
+  maxRecords = 15,
+): Promise<RawHeadline[]> {
+  try {
+    return await fetchGdelt(query, signal, maxRecords)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!message.includes('HTTP 429')) {
+      throw error
+    }
+    await sleep(20_000, signal)
+    return fetchGdelt(query, signal, maxRecords)
+  }
 }
 
 async function fetchGnews(
@@ -284,7 +338,6 @@ async function runOnce(signal?: AbortSignal): Promise<Record<string, unknown>> {
   // ---- 1. Fetch: GNews per filter in parallel, GDELT union alongside.
   const errors: string[] = []
   const candidates = new Map<string, RawHeadline>() // dedupeKey -> headline
-  const fetchedByCategory = new Map<string, number>()
 
   const gnewsSettled = await Promise.allSettled(
     FILTERS.map((filter) => fetchGnews(filter.gdeltQuery, gnewsKey, signal)),
@@ -295,7 +348,6 @@ async function runOnce(signal?: AbortSignal): Promise<Record<string, unknown>> {
       for (const headline of outcome.value) {
         candidates.set(dedupeKeyOf(headline), headline) // first seen wins
       }
-      fetchedByCategory.set(filter.category, outcome.value.length)
     } else {
       const cause = outcome.reason instanceof Error ? outcome.reason.message : 'unknown error'
       errors.push(`GNews (${filter.category}): ${cause}`)
@@ -303,7 +355,7 @@ async function runOnce(signal?: AbortSignal): Promise<Record<string, unknown>> {
   })
 
   try {
-    for (const headline of await fetchGdelt(signal)) {
+    for (const headline of await fetchGdelt(gdeltUnionQuery(), signal)) {
       const key = dedupeKeyOf(headline)
       if (!candidates.has(key)) {
         candidates.set(key, headline)
@@ -313,8 +365,95 @@ async function runOnce(signal?: AbortSignal): Promise<Record<string, unknown>> {
     errors.push(`GDELT: ${error instanceof Error ? error.message : 'unknown error'}`)
   }
 
-  // Cap mirrors the browser pipeline's payload limit.
-  const limited = [...candidates.values()].slice(0, HEADLINE_CAP)
+  // ---- 1b. Headline FLOOR top-ups (mirror of the browser pipeline's
+  // enrichment floor): any filter under HEADLINES_PER_CATEGORY gets ONE
+  // direct dialing of its own topic query, so the snapshot fills every
+  // filter and the app never needs live top-up fetches at visit time.
+  // Dials are SEQUENTIAL with a 6.5s wait — GDELT's server-side rule is
+  // ~1 request per 5s and the union call just consumed one window.
+  const perCategoryCount = (): Map<string, number> => {
+    const counts = new Map<string, number>()
+    for (const headline of candidates.values()) {
+      counts.set(headline.category, (counts.get(headline.category) ?? 0) + 1)
+    }
+    return counts
+  }
+  const floorTopups: string[] = []
+  for (const filter of FILTERS) {
+    if ((perCategoryCount().get(filter.category) ?? 0) >= HEADLINES_PER_CATEGORY) {
+      continue
+    }
+    try {
+      await sleep(6_500, signal)
+      const extras = await fetchGdeltTopUp(filter.gdeltQuery, signal)
+      let absorbed = 0
+      for (const headline of extras) {
+        if ((perCategoryCount().get(filter.category) ?? 0) >= HEADLINES_PER_CATEGORY) {
+          break
+        }
+        const key = dedupeKeyOf(headline)
+        if (!candidates.has(key)) {
+          candidates.set(key, headline)
+          absorbed += 1
+        }
+      }
+      floorTopups.push(`${filter.category}: +${absorbed} via direct topic dial`)
+    } catch (error) {
+      const cause = error instanceof Error ? error.message : 'unknown error'
+      errors.push(`Floor top-up (${filter.category}): ${cause}`)
+    }
+  }
+
+  // ---- 1c. Selection under the cap, FLOORS FIRST: a flood in one
+  // category cannot starve another filter. Fill each category to its
+  // floor with its NEWEST headlines, then fill the remaining cap slots
+  // globally newest-first. Without this, a 75-headline Technology day
+  // swallowed the whole cap and pushed Environment out of the payload.
+  const selected: RawHeadline[] = []
+  const taken = new Set<string>()
+  for (const filter of FILTERS) {
+    const inCategory = [...candidates.entries()]
+      .filter(([, headline]) => headline.category === filter.category)
+      .sort((a, b) => b[1].publishedAt.localeCompare(a[1].publishedAt))
+    for (
+      let i = 0;
+      i < HEADLINES_PER_CATEGORY && i < inCategory.length;
+      i++
+    ) {
+      selected.push(inCategory[i][1])
+      taken.add(inCategory[i][0])
+    }
+  }
+  const rest = [...candidates.entries()]
+    .filter(([key]) => !taken.has(key))
+    .sort((a, b) => b[1].publishedAt.localeCompare(a[1].publishedAt))
+  for (const [key, headline] of rest) {
+    if (selected.length >= HEADLINE_CAP) {
+      break
+    }
+    selected.push(headline)
+    taken.add(key)
+  }
+  const limited = selected
+
+  // Floor report: what each filter ACTUALLY got (honest unmet floors —
+  // sources can genuinely have none), so the summary tells the truth.
+  const floorReport: Record<string, string> = {}
+  const selectedByCategory = new Map<string, number>()
+  for (const headline of limited) {
+    selectedByCategory.set(headline.category, (selectedByCategory.get(headline.category) ?? 0) + 1)
+  }
+  for (const filter of FILTERS) {
+    const count = selectedByCategory.get(filter.category) ?? 0
+    floorReport[filter.category] = `${count}/${HEADLINES_PER_CATEGORY}${
+      count >= HEADLINES_PER_CATEGORY ? '' : ' (UNMET after topic dial)'
+    }`
+    if (count < HEADLINES_PER_CATEGORY) {
+      errors.push(
+        `Headline floor (${filter.category}): ${count} of ${HEADLINES_PER_CATEGORY} — the browser may need its live top-up for this filter.`,
+      )
+    }
+  }
 
   // ---- 2. Diff against what storage already has.
   const keys = limited.map((headline) => dedupeKeyOf(headline))
@@ -417,7 +556,9 @@ async function runOnce(signal?: AbortSignal): Promise<Record<string, unknown>> {
     inserted: toInsert.length,
     updated: updatedKeys.length,
     unchanged, // same headline, same content -> not re-copied
-    fetched_by_category: Object.fromEntries(fetchedByCategory),
+    fetched_by_category: Object.fromEntries(selectedByCategory),
+    floor_by_category: floorReport,
+    floor_topups: floorTopups,
     errors,
   }
 }
